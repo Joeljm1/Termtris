@@ -4,9 +4,11 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <random>
 #include <string>
 #include <thread>
 #include <vector>
@@ -18,7 +20,7 @@ std::string tetromino[7];
 int feildWidth = 12;
 int feildHeight = 18;
 
-int score =0;
+long score = 0;  // TODO: on 4 give more points
 int ScreenWidth = 50;
 int ScreenHeight = 30;
 unsigned char* pFeild = nullptr;
@@ -35,7 +37,7 @@ void disableRawMode() {
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &ogTermios) == -1) {
     die("tcsetattr");
   }
-  std::cout<<"SCORE: "<<score;
+  std::cout << "SCORE: " << score;
 }
 
 void enableRawMode() {
@@ -242,15 +244,39 @@ void displayScreen(char* screen) {
   moveUp(ScreenHeight);
 }
 
+void printStringToScreen(char* screen, const std::string& str, int row) {
+  assert(feildWidth + 10 + str.size() < ScreenWidth && " string to long");
+  int scoreIdx = feildWidth + 10;
+  for (auto& c : str) {
+    screen[row * ScreenWidth + scoreIdx] = c;
+    scoreIdx++;
+  }
+}
+
+void printSlowly(char* screen, const std::string& str, int row) {
+  std::string s = "";
+  for (auto c : str) {
+    s += c;
+    printStringToScreen(screen, s, 10);
+    std::this_thread::sleep_for(50ms);
+    displayScreen(screen);
+  }
+}
+
 int main() {
   std::cout << "\033[?25l";  // diable cursor
   init();
+
+  //random seed
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dist(0, 6);
 
   char* screen = new char[ScreenWidth * ScreenHeight];
 
   // GAME LOGIC STUFF
   bool gameOver = false;
-  int currPeice = 0;
+  int currPeice = dist(gen);
   int currRotation = 0;
   int currX = feildWidth / 2;
   int currY = 0;
@@ -258,21 +284,20 @@ int main() {
   int speed = 10;
   int speedCounter = 0;
   bool forceDown = false;
+  bool needHelp = false;
   std::vector<int> completeLines;
 
   while (!gameOver) {
     // GAME TIMING
     std::this_thread::sleep_for(20ms);
-    speedCounter++;
-    if (speedCounter == speed) {
+    speedCounter += std::max(score / 10, 1l);
+    if (speedCounter >= speed) {
       forceDown = true;
     } else {
       forceDown = false;
     }
 
     // INPUT
-    // TODO: get input for left,right,rotate,down
-    // (leftArrow,rightArrow,upArrow,downArrow)
     int inp = editorReadKey();
     switch (inp) {
       case ARROW_LEFT:
@@ -296,6 +321,9 @@ int main() {
         if (DoesPeiceFit(currPeice, currRotation, currX, currY + 1)) {
           currY++;
         }
+        break;
+      case '?':
+        needHelp = !needHelp;
         break;
       case 'q':
         exit(0);
@@ -327,7 +355,7 @@ int main() {
               }
             }
             if (line) {
-              score++;//TODO: on 4 give more points
+              score += 1;  // TODO: on 4 give more points
               completeLines.push_back(currY + py);
               for (int px = 1; px < feildWidth - 1; px++) {
                 pFeild[(currY + py) * feildWidth + px] = 8;
@@ -340,7 +368,7 @@ int main() {
         currX = feildWidth / 2;
         currY = 0;
         currRotation = 0;
-        currPeice = rand() % 7;
+        currPeice = dist(gen);
         //
         // if peice cant fit game over
         gameOver = !DoesPeiceFit(currPeice, currRotation, currX, currY);
@@ -348,7 +376,6 @@ int main() {
 
       speedCounter = 0;
     }
-
 
     // RENDER OUTPUT
 
@@ -361,7 +388,17 @@ int main() {
       }
     }
 
-
+    std::string scoreText = "Score : ";
+    scoreText += std::to_string(score);
+    printStringToScreen(screen, scoreText, 3);
+    if (!needHelp) {
+      printStringToScreen(screen, "Press ? for help", 5);
+    } else {
+      printStringToScreen(screen, "Press up for rotating", 5);
+      printStringToScreen(screen, "Press down to go down", 6);
+      printStringToScreen(screen, "Press left/right to move", 7);
+      printStringToScreen(screen, "Press q to quit", 8);
+    }
     // DRAW CURR PEICE
     for (int py = 0; py < 4; py++) {
       for (int px = 0; px < 4; px++) {
@@ -372,8 +409,11 @@ int main() {
       }
     }
     if (!completeLines.empty()) {
-      displayScreen(screen);
-      std::this_thread::sleep_for(200ms);
+      if (completeLines.size() == 4) {
+        printSlowly(screen, "TETRIS", 10);
+        score += 8;
+      }
+
       std::vector<int> tmp{};
       for (int py = feildHeight - 2; py >= 0; py--) {
         if (std::find(completeLines.begin(), completeLines.end(), py) ==
@@ -387,7 +427,7 @@ int main() {
           pFeild[py * feildWidth + px] = pFeild[tmp[tmpY] * feildWidth + px];
         }
       }
-      for(;py>=0;py--){
+      for (; py >= 0; py--) {
         for (int px = 1; px < feildWidth - 1; px++) {
           pFeild[py * feildWidth + px] = 0;
         }

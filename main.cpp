@@ -14,8 +14,6 @@
 #include <vector>
 using namespace std::chrono_literals;
 
-char tetro = 'X';
-
 std::string tetromino[7];
 int feildWidth = 12;
 int feildHeight = 18;
@@ -197,10 +195,10 @@ void init() {
   for (int x = 0; x < feildWidth; x++) {
     for (int y = 0; y < feildHeight; y++) {
       if (y == feildHeight - 1) {
-        if(x==0||x==feildWidth-1){
-        pFeild[y * feildWidth + x] = 10;
-        }else{
-        pFeild[y * feildWidth + x] = 11;
+        if (x == 0 || x == feildWidth - 1) {
+          pFeild[y * feildWidth + x] = 10;
+        } else {
+          pFeild[y * feildWidth + x] = 11;
         }
       } else if (x == 0 || x == feildWidth - 1) {
         pFeild[y * feildWidth + x] = 9;
@@ -229,7 +227,7 @@ bool DoesPeiceFit(int tetriminoNo, int rotation, int posX, int posY) {
     for (int px = 0; px < 4; px++) {
       int cellId = Rotate(px, py, rotation);                 // in the tetromino
       int feildId = (posY + py) * feildWidth + (posX + px);  // in the feild;
-      if (tetromino[tetriminoNo][cellId] == tetro && pFeild[feildId] != 0) {
+      if (tetromino[tetriminoNo][cellId] == 'X' && pFeild[feildId] != 0) {
         return false;
       }
     }
@@ -239,7 +237,11 @@ bool DoesPeiceFit(int tetriminoNo, int rotation, int posX, int posY) {
 
 void moveUp(int n) { std::cout << "\033[" << n << "A"; }
 
-void printChar(char c) {
+void printChar(char c, bool text) {
+  if (text) {
+    std::cout << "\e[0;37m" << c;
+    return;
+  }
   std::string s = "█";
   switch (c) {
       // " ABCDEFG=#"
@@ -284,7 +286,12 @@ void printChar(char c) {
 void displayScreen(char* screen) {
   for (int y = 0; y < ScreenHeight; y++) {
     for (int x = 0; x < ScreenWidth; x++) {
-      printChar(screen[x + ScreenWidth * y]);
+      bool isText = false;
+      //NOTE: Anything after feild widht is text
+      if (x > feildWidth + 2) {
+        isText = true;
+      }
+      printChar(screen[x + ScreenWidth * y], isText);
     }
     std::cout << "\n";
   }
@@ -417,7 +424,7 @@ int main() {
         currY = 0;
         currRotation = 0;
         currPeice = dist(gen);
-        //
+
         // if peice cant fit game over
         gameOver = !DoesPeiceFit(currPeice, currRotation, currX, currY);
       }
@@ -450,7 +457,7 @@ int main() {
     // DRAW CURR PEICE
     for (int py = 0; py < 4; py++) {
       for (int px = 0; px < 4; px++) {
-        if (tetromino[currPeice][Rotate(px, py, currRotation)] == tetro) {
+        if (tetromino[currPeice][Rotate(px, py, currRotation)] == 'X') {
           screen[(currY + py + 2) * ScreenWidth + (currX + px + 2)] =
               currPeice + 'A';
         }
@@ -460,6 +467,9 @@ int main() {
       if (completeLines.size() == 4) {
         printSlowly(screen, "TETRIS", 10);
         score += 8;
+      } else {
+        std::this_thread::sleep_for(50ms);
+        displayScreen(screen);
       }
 
       std::vector<int> tmp{};

@@ -196,7 +196,13 @@ void init() {
   pFeild = new unsigned char[feildHeight * feildWidth];
   for (int x = 0; x < feildWidth; x++) {
     for (int y = 0; y < feildHeight; y++) {
-      if (x == 0 || x == feildWidth - 1 || y == feildHeight - 1) {
+      if (y == feildHeight - 1) {
+        if(x==0||x==feildWidth-1){
+        pFeild[y * feildWidth + x] = 10;
+        }else{
+        pFeild[y * feildWidth + x] = 11;
+        }
+      } else if (x == 0 || x == feildWidth - 1) {
         pFeild[y * feildWidth + x] = 9;
       } else {
         pFeild[y * feildWidth + x] = 0;
@@ -233,10 +239,52 @@ bool DoesPeiceFit(int tetriminoNo, int rotation, int posX, int posY) {
 
 void moveUp(int n) { std::cout << "\033[" << n << "A"; }
 
+void printChar(char c) {
+  std::string s = "█";
+  switch (c) {
+      // " ABCDEFG=#"
+    case 'A':
+      std::cout << "\e[0;101m ";
+      break;
+    case 'B':
+      std::cout << "\e[0;102m ";
+      break;
+    case 'C':
+      std::cout << "\e[0;103m ";
+      break;
+    case 'D':
+      std::cout << "\e[0;104m ";
+      break;
+    case 'E':
+      std::cout << "\e[0;105m ";
+      break;
+    case 'F':
+      std::cout << "\e[0;106m ";
+      break;
+    case 'G':
+      std::cout << "\e[0;107m ";
+      break;
+    case '=':
+      std::cout << "✦";
+      break;
+    case '#':
+      std::cout << "\e[0;37m║";
+      break;
+    case '-':
+      std::cout << "\e[0;37m╚";
+      break;
+    case '(':
+      std::cout << "\e[0;37m═";
+      break;
+    default:
+      std::cout << "\e[0;37m" << c;
+  }
+}
+
 void displayScreen(char* screen) {
   for (int y = 0; y < ScreenHeight; y++) {
     for (int x = 0; x < ScreenWidth; x++) {
-      std::cout << screen[x + ScreenWidth * y];
+      printChar(screen[x + ScreenWidth * y]);
     }
     std::cout << "\n";
   }
@@ -267,7 +315,7 @@ int main() {
   std::cout << "\033[?25l";  // diable cursor
   init();
 
-  //random seed
+  // random seed
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<int> dist(0, 6);
@@ -384,7 +432,7 @@ int main() {
     for (int x = 0; x < feildWidth; x++) {
       for (int y = 0; y < feildHeight; y++) {
         screen[(y + 2) * ScreenWidth + (x + 2)] =
-            " ABCDEFG=#"[pFeild[y * feildWidth + x]];
+            " ABCDEFG=#-("[pFeild[y * feildWidth + x]];
       }
     }
 

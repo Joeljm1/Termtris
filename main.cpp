@@ -468,8 +468,8 @@ int main() {
         printSlowly(screen, "TETRIS", 10);
         score += 8;
       } else {
-        std::this_thread::sleep_for(50ms);
         displayScreen(screen);
+        std::this_thread::sleep_for(50ms);
       }
 
       std::vector<int> tmp{};

@@ -1,7 +1,11 @@
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <string>
 #include <thread>
+using namespace std::chrono_literals;
+
+char tetro = 'X';
 
 std::string tetromino[7];
 int feildWidth = 12;
@@ -58,10 +62,6 @@ void init() {
     }
   }
 }
-bool DoesPeiceFit(int tetrimino,int rotation,int posX,int posY){
-  return true;
-}
-
 int Rotate(int px, int py, int r) {
   switch (r % 4) {
     case 0:
@@ -76,32 +76,64 @@ int Rotate(int px, int py, int r) {
   return -1;  // just to remove warning
 }
 
+bool DoesPeiceFit(int tetriminoNo, int rotation, int posX, int posY) {
+  for (int py = 0; py < 4; py++) {
+    for (int px = 0; px < 4; px++) {
+      int cellId = Rotate(px, py, rotation);                 // in the tetromino
+      int feildId = (posY + py) * feildWidth + (posX + px);  // in the feild;
+      if (tetromino[tetriminoNo][cellId] == tetro && pFeild[feildId] != 0) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 void moveUp(int n) { std::cout << "\033[" << n << "A"; }
 int main() {
   std::cout << "\033[?25l";  // diable cursor
   init();
-  bool gameOver = false;
+
   char* screen = new char[ScreenWidth * ScreenHeight];
+
+  // GAME LOGIC STUFF
+  bool gameOver = false;
+  int currPeice = 0;
+  int currRotation = 0;
+  int currX = feildWidth / 2;
+  int currY = 0;
+
   while (!gameOver) {
-
     // GAME TIMING
-
+    std::this_thread::sleep_for(50ms);
 
     // INPUT
-
+    // TODO: get input for left,right,rotate,down (leftArrow,rightArrow,upArrow,downArrow)
 
     // GAME LOGIC
 
-
-
     // RENDER OUTPUT
+
+    // DRAW FEILD
     memset(screen, ' ', ScreenWidth * ScreenHeight);
     for (int x = 0; x < feildWidth; x++) {
       for (int y = 0; y < feildHeight; y++) {
-        screen[(y +2) * ScreenWidth + (x + 2)] =
+        screen[(y + 2) * ScreenWidth + (x + 2)] =
             " ABCDEFG=#"[pFeild[y * feildWidth + x]];
       }
     }
+
+    // DRAW CURR PEICE
+    for (int py = 0; py < 4; py++) {
+      for (int px = 0; px < 4; px++) {
+        if (tetromino[currPeice][Rotate(px, py, currRotation)] == tetro) {
+          screen[(currY + py + 2) * ScreenWidth + (currX + px + 2)] =
+              currPeice + 'A';
+        }
+      }
+    }
+
+    // DISPLAY FRAME
     for (int y = 0; y < ScreenHeight; y++) {
       for (int x = 0; x < ScreenWidth; x++) {
         std::cout << screen[x + ScreenWidth * y];
@@ -110,6 +142,5 @@ int main() {
     }
 
     moveUp(ScreenHeight);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));  // throttle
   }
 }
